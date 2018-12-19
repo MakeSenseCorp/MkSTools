@@ -30,12 +30,19 @@ parser.add_argument('--get_master_nodes_info', action='store',
 parser.add_argument('-s', action='store_true', default=False, 
 					dest='slave_commands', help='Set to slave commands')
 
+parser.add_argument('--get_node_info_by_ip', action='store',
+					dest='node_ip_with_port', help='Get node info')
+
+parser.add_argument('--get_node_help', action='store',
+					dest='node_ip_with_port', help='Get to know how to communicate with this node')
+
 args = parser.parse_args()
 
 IpMasterList = None
 
 if args.master_commands is True:
 	if args.get_master_list is True:
+		print "# Searching for MASTERS, it can take a few seconds."
 		ips = MkSUtils.FindLocalMasterNodes()
 		IpMasterList = ips
 		print "\nMaster list:"
@@ -70,4 +77,18 @@ if args.master_commands is True:
 			print("\n" + raw + "\n")
 		
 elif args.slave_commands is True:
-	print "Slave commands"
+	if args.node_ip_with_port is not None:
+		ip_port = str(args.node_ip_with_port)
+		ip, port = ip_port.split(':')
+		packet = Commands.GetSensorInfoRequest()
+		raw = MkSUtils.ReadFromSocket(ip, int(port), packet, 2048)
+
+		if "MKS" in raw[:3]:
+			multiData = raw.split("MKS: ")
+			for data in multiData[1:]:
+				req = (data.split('\n'))[1]
+
+			jsonData = json.loads(str(req))
+			for idx, sensor in enumerate(jsonData["sensors"]):
+				print "\n (" + str(idx+1) + ")\n  " + json.dumps(sensor)
+			print "\n"
